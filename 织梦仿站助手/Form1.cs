@@ -19,17 +19,46 @@ namespace 织梦仿站助手
         {
             InitializeComponent();
         }
-
+        List<string> cssFilePathList=new List<string>();
+        List<string> cssRelativeUrls = new List<string>();
+        List<string> jsFilePathList = new List<string>();
+        List<string> jsRelativeUrls = new List<string>();
+        /// <summary>
+        /// 提取按钮的单击事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnOk_Click(object sender, EventArgs e)
         {
             string url = txtUrl.Text;
             string text = GetHttpWebRequest(url);
-            MatchCollection _matchCollection = Regex.Matches(text, "<link.*href=\"(.*?)\"");
-            foreach (Match match in _matchCollection)
+
+            string regularCss = "href=\"(.*?\\.css.*?)\"";
+            foreach(string value in GetRegularExpressionValue(text, regularCss))
             {
-                txtLog.Text += match.Groups[1].Value+"\r";
+                cssFilePathList.Add(GetAbsoluteUrl(value,url));
+                cssRelativeUrls.Add(value);
+            }
+
+            string regularJs = "src=\"(.*?)\"></script>";
+            foreach (string value in GetRegularExpressionValue(text, regularJs))
+            {
+                jsFilePathList.Add(GetAbsoluteUrl(value, url));
+                jsRelativeUrls.Add(value);
+            }
+
+
+
+            foreach (string css in jsFilePathList)
+            {
+                txtLog.Text += css+"\r\n";
             }
         }
+       /// <summary>
+       /// 获取网页源码
+       /// </summary>
+       /// <param name="url">网页地址</param>
+       /// <returns>页面源码</returns>
         private string GetHttpWebRequest(string url)
         {
             Uri uri = new Uri(url);
@@ -46,6 +75,34 @@ namespace 织梦仿站助手
             receviceStream.Close();
             result.Close();
             return strHTML;
+        }
+        /// <summary>
+        /// 通过正则表达式匹配内容
+        /// </summary>
+        /// <param name="text">待匹配的内容</param>
+        /// <param name="regular">正则表达式</param>
+        /// <returns>匹配结果的集合</returns>
+        private List<string> GetRegularExpressionValue(string text, string regular)
+        {
+            List<string> value = new List<string>();
+            MatchCollection _matchCollection = Regex.Matches(text, regular);
+            foreach (Match match in _matchCollection)
+            {
+                value.Add(match.Groups[1].Value.ToString());
+            }
+            return value;
+        }
+        /// <summary>
+        /// 将相对路径转换为绝对路径
+        /// </summary>
+        /// <param name="relativeUrl">相对路径</param>
+        /// <param name="baseUrl">相对的绝对路径</param>
+        /// <returns>处理过后的绝对路径</returns>
+        private String GetAbsoluteUrl(String relativeUrl, string baseUrl)
+        {
+            Uri baseUri = new Uri(baseUrl);
+            Uri absoluteUri = new Uri(baseUri, relativeUrl);
+            return absoluteUri.ToString();
         }
     }
 }
