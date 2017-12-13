@@ -23,6 +23,10 @@ namespace 织梦仿站助手
         List<string> cssRelativeUrls = new List<string>();
         List<string> jsFilePathList = new List<string>();
         List<string> jsRelativeUrls = new List<string>();
+        List<string> imgFilePathList = new List<string>();
+        List<string> imgRelativeUrls = new List<string>();
+        List<string> urlFilePathList = new List<string>();
+        List<string> urlRelativeUrls = new List<string>();
         /// <summary>
         /// 提取按钮的单击事件
         /// </summary>
@@ -33,6 +37,7 @@ namespace 织梦仿站助手
             string url = txtUrl.Text;
             string text = GetHttpWebRequest(url);
 
+            //提取css文件
             string regularCss = "href=\"(.*?\\.css.*?)\"";
             foreach(string value in GetRegularExpressionValue(text, regularCss))
             {
@@ -40,6 +45,7 @@ namespace 织梦仿站助手
                 cssRelativeUrls.Add(value);
             }
 
+            //提取js文件
             string regularJs = "src=\"(.*?)\"></script>";
             foreach (string value in GetRegularExpressionValue(text, regularJs))
             {
@@ -47,12 +53,27 @@ namespace 织梦仿站助手
                 jsRelativeUrls.Add(value);
             }
 
-
-
-            foreach (string css in jsFilePathList)
+            //提取网页图片文件
+            string regularImg = "<img src=\"(.*?)\".*?/>";
+            foreach (string value in GetRegularExpressionValue(text, regularImg))
             {
-                txtLog.Text += css+"\r\n";
+                imgFilePathList.Add(GetAbsoluteUrl(value, url));
+                imgRelativeUrls.Add(value);
             }
+
+            //提取css文件url里的文件，一般是背景图片和字体等文件
+            foreach (string link in cssFilePathList)
+            {
+                string txtcss = GetHttpWebRequest(link);
+                string regularUrl = "url\\((.*?)\\)";
+                foreach (string value in GetRegularExpressionValue(txtcss, regularUrl))
+                {
+                    urlFilePathList.Add(GetAbsoluteUrl(value, url));
+                    urlRelativeUrls.Add(value);
+                }
+            }
+
+
         }
        /// <summary>
        /// 获取网页源码
