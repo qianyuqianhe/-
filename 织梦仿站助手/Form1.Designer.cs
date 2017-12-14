@@ -32,7 +32,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.btnOk = new System.Windows.Forms.Button();
             this.txtLog = new System.Windows.Forms.RichTextBox();
-            this.button1 = new System.Windows.Forms.Button();
+            this.btnClear = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // txtUrl
@@ -71,15 +71,15 @@
             this.txtLog.TabIndex = 3;
             this.txtLog.Text = "";
             // 
-            // button1
+            // btnClear
             // 
-            this.button1.Location = new System.Drawing.Point(481, 99);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 4;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.btnClear.Location = new System.Drawing.Point(861, 104);
+            this.btnClear.Name = "btnClear";
+            this.btnClear.Size = new System.Drawing.Size(75, 23);
+            this.btnClear.TabIndex = 4;
+            this.btnClear.Text = "清空缓存";
+            this.btnClear.UseVisualStyleBackColor = true;
+            this.btnClear.Click += new System.EventHandler(this.button1_Click);
             // 
             // Form1
             // 
@@ -87,7 +87,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(948, 261);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.btnClear);
             this.Controls.Add(this.txtLog);
             this.Controls.Add(this.btnOk);
             this.Controls.Add(this.label1);
@@ -105,7 +105,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button btnOk;
         private System.Windows.Forms.RichTextBox txtLog;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btnClear;
     }
 }
 

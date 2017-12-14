@@ -68,47 +68,76 @@ namespace 织梦仿站助手
             string url = txtUrl.Text;
             string text = GetHttpWebRequest(url);
 
+
             //提取css文件
-            string regularCss = "<link.*rel=\"Stylesheet\".*href=\"(.*?)\"|<link.*rel=\"stylesheet\".*href=\"(.*?)\"";
-            foreach (string value in GetRegularExpressionValue(text, regularCss))
+            string[] regularCss = {
+                "<link.*rel=\"Stylesheet\".*href=\"(.*?)\"",
+                "<link.*rel=\"stylesheet\".*href=\"(.*?)\"",
+                "<link href='(.*?)' rel='stylesheet'"
+            };            
+            foreach(string regular in regularCss)
             {
-                MessageBox.Show(value);
-                cssFilePathList.Add(GetAbsoluteUrl(value, url));
-                cssRelativeUrls.Add(value);
+                foreach (string value in GetRegularExpressionValue(text, regular))
+                {
+                    cssFilePathList.Add(GetAbsoluteUrl(value, url));
+                    cssRelativeUrls.Add(value);
+                }
             }
+
 
             //提取js文件
-            string regularJs = "<script src=\"(.*?)\"|src=\"(.*?)\"></script>";
-            foreach (string value in GetRegularExpressionValue(text, regularJs))
+            string[] regularJs = {
+                "<script src=\"(.*?)\"",
+                "src=\"([^\"]*?)\".*?></script>"
+            };
+            foreach(string regular in regularJs)
             {
-                jsFilePathList.Add(GetAbsoluteUrl(value, url));
-                jsRelativeUrls.Add(value);
+                foreach (string value in GetRegularExpressionValue(text, regular))
+                {
+                    jsFilePathList.Add(GetAbsoluteUrl(value, url));
+                    jsRelativeUrls.Add(value);
+                }
             }
+
 
             //提取网页图片文件
-            string regularImg = "<img.*?src=\"(.*?)\"";
-            foreach (string value in GetRegularExpressionValue(text, regularImg))
+            string[] regularImg = {
+                "<img.*?src=\"(.*?)\""
+            };
+            foreach(string regular in regularImg)
             {
-                imgFilePathList.Add(GetAbsoluteUrl(value, url));
-                imgRelativeUrls.Add(value);
+                foreach (string value in GetRegularExpressionValue(text, regular))
+                {
+                    imgFilePathList.Add(GetAbsoluteUrl(value, url));
+                    imgRelativeUrls.Add(value);
+                }
             }
 
+
             //提取css文件url里的文件，一般是背景图片和字体等文件
+            string[] regularUrl = {
+                "url\\('(.*?)'\\)",
+                "url\\(\"(.*?)\"\\)"
+            };
             foreach (string link in cssFilePathList)
             {
                 string txtcss = GetHttpWebRequest(link);
-                string regularUrl = "url\\((.*?)\\)";
-                foreach (string value in GetRegularExpressionValue(txtcss, regularUrl))
+                foreach(string regular in regularUrl)
                 {
-                    urlFilePathList.Add(GetAbsoluteUrl(value, url));
-                    urlRelativeUrls.Add(value);
+                    foreach (string value in GetRegularExpressionValue(txtcss, regular))
+                    {
+                        if (!value.StartsWith("data"))
+                        {
+                            urlFilePathList.Add(GetAbsoluteUrl(value, link));
+                            urlRelativeUrls.Add(value);
+                        }
+                    }
                 }
+                
             }
             //开启线程下载文件
             Thread DownloadFile = new Thread(new ParameterizedThreadStart(ThreadDownload));
             DownloadFile.Start();
-
-
         }
         /// <summary>
         /// 获取网页源码
@@ -169,30 +198,45 @@ namespace 织梦仿站助手
         public void HttpDownload(string url, string path)
         {
             Uri uri = new Uri(url);
-            string filename = GetRegularExpressionValue(uri.LocalPath, "/([^/]*\\.[^/]*)")[0];
+            string filename = "";
+            if (GetRegularExpressionValue(uri.LocalPath, "/([^/]*\\.[^/]*)").Count!=0)
+            {
+                filename = GetRegularExpressionValue(uri.LocalPath, "/([^/]*\\.[^/]*)")[0];
+            }
+            else
+            {
+                int i = url.LastIndexOf("/");
+                filename=url.Substring(i);
+            }
+            
             path += "/" + filename;
             if (!File.Exists(path))
             {
-                FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                // 设置参数
-                HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
-                //发送请求并获取相应回应数据
-                HttpWebResponse response = request.GetResponse() as HttpWebResponse;
-                //直到request.GetResponse()程序才开始向目标网页发送Post请求
-                Stream responseStream = response.GetResponseStream();
-                //创建本地文件写入流
-                //Stream stream = new FileStream(tempFile, FileMode.Create);
-                byte[] bArr = new byte[1024];
-                int size = responseStream.Read(bArr, 0, (int)bArr.Length);
-                while (size > 0)
-                {
-                    //stream.Write(bArr, 0, size);
-                    fs.Write(bArr, 0, size);
-                    size = responseStream.Read(bArr, 0, (int)bArr.Length);
+                try {
+                    FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                    // 设置参数
+                    HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
+                    //发送请求并获取相应回应数据
+                    HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+                    //直到request.GetResponse()程序才开始向目标网页发送Post请求
+                    Stream responseStream = response.GetResponseStream();
+                    //创建本地文件写入流
+                    //Stream stream = new FileStream(tempFile, FileMode.Create);
+                    byte[] bArr = new byte[1024];
+                    int size = responseStream.Read(bArr, 0, (int)bArr.Length);
+                    while (size > 0)
+                    {
+                        //stream.Write(bArr, 0, size);
+                        fs.Write(bArr, 0, size);
+                        size = responseStream.Read(bArr, 0, (int)bArr.Length);
+                    }
+                    //stream.Close();
+                    fs.Close();
+                    responseStream.Close();
                 }
-                //stream.Close();
-                fs.Close();
-                responseStream.Close();
+                catch {
+                    updateRunLog(String.Format("下载文件出错，发生在链接：{0}\r\n", url));
+                }
             }
         }
 
@@ -200,31 +244,39 @@ namespace 织梦仿站助手
         {
             foreach (string url in cssFilePathList)
             {
-                //HttpDownload(url, "style");
+                HttpDownload(url, "style");
             }
-            updateRunLog(String.Format("下载css文件完成，共{0}个文件",cssFilePathList.Count));
+            updateRunLog(String.Format("下载css文件完成，共{0}个文件。\r\n",cssFilePathList.Count));
 
             foreach (string url in jsFilePathList)
             {
                 HttpDownload(url, "js");
             }
-            updateRunLog(String.Format("下载js文件完成，共{0}个文件", jsFilePathList.Count));
+            updateRunLog(String.Format("下载js文件完成，共{0}个文件。\r\n", jsFilePathList.Count));
 
             foreach (string url in imgFilePathList)
             {
                 HttpDownload(url, "images");
             }
-            updateRunLog(String.Format("下载图片文件完成，共{0}个文件", imgFilePathList.Count));
+            updateRunLog(String.Format("下载图片文件完成，共{0}个文件。\r\n", imgFilePathList.Count));
 
             foreach (string url in urlFilePathList)
             {
                 HttpDownload(url, "url");
             }
-            updateRunLog(String.Format("下载url文件完成，共{0}个文件", urlFilePathList.Count));
+            updateRunLog(String.Format("下载url文件完成，共{0}个文件。\r\n", urlFilePathList.Count));
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            HttpDownload("https://common.cnblogs.com/script/jquery.js?12121212", "");
+            txtLog.Text = "";
+            cssFilePathList = new List<string>();
+            cssRelativeUrls = new List<string>();
+            jsFilePathList = new List<string>();
+            jsRelativeUrls = new List<string>();
+            imgFilePathList = new List<string>();
+            imgRelativeUrls = new List<string>();
+            urlFilePathList = new List<string>();
+            urlRelativeUrls = new List<string>();
         }
     }
 }
